@@ -25,3 +25,5 @@ enum class bool_t : bool {
 	no = false,
 	yes = true
 };
+
+typedef unsigned char byte_t;

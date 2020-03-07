@@ -153,6 +153,29 @@ scard::info scard::device::connect(
 	return {reinterpret_cast<scard::handle>(handle), map_out.at(protocol)};
 }
 
+bool scard::device::transmit(
+	_in const scard::info &scard_info, _in const data &data_in, _out data &data_out
+) const {
+	assert(2 <= data_out.size());
+
+	const auto handle = reinterpret_cast<SCARDHANDLE>(scard_info.handle);
+	const std::map<scard::protocol, LPCSCARD_IO_REQUEST> pci {
+		{scard::protocol::t0, SCARD_PCI_T0},
+		{scard::protocol::t1, SCARD_PCI_T1},
+	};
+	
+	DWORD size_out = 0;
+	const auto status = Winapi::SCardTransmit(
+		handle, pci.at(scard_info.protocol), data_in.data(), static_cast<DWORD>(data_in.size()), nullptr, data_out.data(), &size_out
+	);
+	if (status::ok != status) {
+		Winapi::SetLastError(status);
+		return false;
+	}
+	data_out.resize(size_out);
+	return true;
+}
+
 /*static?*/ bool scard::device::disconnect(
 	_in handle handle, _in disposition disposition /*= disposition::leave*/
 ) {
@@ -170,4 +193,130 @@ scard::info scard::device::connect(
 	return false;
 }
 
-//-- scard -------------------------------------------------------------------------------------------------------------------------------------------------------
+//-- scard::command -------------------------------------------------------------------------------------------------------------------------------------------------------
+scard::command::command(
+	_in size size /*= 0*/
+) :
+	_data(size)
+{}
+scard::command::command(
+	_in std::initializer_list<byte_t> bytes
+) {
+	_set(false, bytes);
+}
+
+void scard::command::_set(
+	_in bool is__clear_first, _in std::initializer_list<byte_t> bytes
+) {
+	if (is__clear_first)
+		_data.clear();
+	_data.reserve(bytes.size());
+	for (const auto byte : bytes)
+		_data.push_back(byte);
+}
+void scard::command::set(
+	_in std::initializer_list<byte_t> bytes
+) {
+	_set(true, bytes);
+}
+
+void scard::command::clear(
+) {
+	_data.clear();
+}
+
+scard::command& scard::command::operator <<(
+	_in byte_t byte
+) {
+	_data.push_back(byte);
+	return *this;
+}
+scard::command& scard::command::operator <<(
+	_in std::initializer_list<byte_t> bytes
+) {
+	_data.reserve(_data.size() + bytes.size());
+	for (const auto byte : bytes)
+		_data.push_back(byte);
+	return *this;
+}
+
+const byte_t& scard::command::operator[](
+	_in size index
+) const {
+	return _data.at(index);
+}
+byte_t& scard::command::operator[](
+	_in size index
+) {
+	return _data.at(index);
+}
+
+scard::command::crc::value scard::command::get_crc(
+	_in crc::type crc_type
+) const {
+	return crc::get(crc_type, _data);
+}
+scard::command& scard::command::operator <<(
+	_in crc::value crc_value
+) {
+	auto bytes = reinterpret_cast<const byte_t *>(&crc_value);
+	return operator << ({bytes[1], bytes[0]});
+}
+
+nfc::data& scard::command::data(
+) noexcept {
+	return _data;
+}
+const nfc::data& scard::command::data(
+) const noexcept {
+	return _data;
+}
+
+//-- scard::command::crc -----------------------------------------------------------------------------------------------------------------------------------------------------
+/*static*/ void scard::command::crc::update(
+	_in _out value &value, _in byte_t byte
+) {
+	byte ^= static_cast<byte_t>(value & 0x00FF);
+	byte ^= static_cast<byte_t>(byte << 4);
+	value = (value >> 8) ^ (static_cast<crc::value>(byte) << 8) ^ (static_cast<crc::value>(byte) << 3) ^ (static_cast<crc::value>(byte) >> 4);
+}
+
+/*static*/ scard::command::crc::value scard::command::crc::get_a(
+	_in const nfc::data &bytes
+) {
+	value crc = 0x6363;			// ISO/IEC 14443-3 -> ITU-V.41
+	for (const auto &byte : bytes)
+		update(crc, byte);
+	return crc;
+}
+/*static*/ scard::command::crc::value scard::command::crc::get_b(
+	_in const nfc::data &bytes
+) {
+	value crc = 0xFFFF;			// ISO/IEC 14443-3 -> ISO/IEC 13239 (formerly ISO/IEC 3309)
+	for (const auto &byte : bytes)
+		update(crc, byte);
+	return ~crc;
+}
+/*static*/ scard::command::crc::value scard::command::crc::get(
+	_in type type, _in const nfc::data &bytes
+) {
+	const std::map<crc::type, value(*)(_in const nfc::data &)> func {
+		{type::a, get_a},
+		{type::b, get_b},
+	};
+	return func.at(type)(bytes);
+}
+
+scard::command::crc::crc(
+	_in type type
+) :
+	_type(type)
+{}
+
+scard::command::crc::value scard::command::crc::get(
+	_in const nfc::data &bytes
+) {
+	return get(_type, bytes);
+}
+
+//-- scard -----------------------------------------------------------------------------------------------------------------------------------------------------

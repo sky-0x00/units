@@ -15,5 +15,4 @@ namespace stdex {
 		return (value >= range.first) && (value <= range.second);
 	}
 
-
-}
+}	// stdex

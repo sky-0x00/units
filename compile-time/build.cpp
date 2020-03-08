@@ -43,7 +43,7 @@
 		value.push_back(month % 10 + L'0');
 
 		value.push_back(L'-');
-		value.push_back(date[4]);
+		value.push_back(L' ' == date[4] ? L'0' : date[4]);
 		value.push_back(date[5]);
 
 		return value;

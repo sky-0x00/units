@@ -34,7 +34,7 @@ namespace nfc {
 			class crc {
 			public:
 				typedef uint16_t value;
-				enum class type {
+				enum /*class*/ type {
 					a, b
 				};
 				static value get_a(_in const data &bytes);
@@ -53,18 +53,24 @@ namespace nfc {
 			command(_in std::initializer_list<byte_t> bytes);
 			void set(_in std::initializer_list<byte_t> bytes);
 			void clear();
-			command& operator <<(_in byte_t byte);
-			command& operator <<(_in std::initializer_list<byte_t> bytes);
-			const byte_t& operator[](_in size index) const;
-			byte_t& operator[](_in size index);
+		public:
+			void append_data(_in byte_t byte);
+			void append_data(_in std::initializer_list<byte_t> bytes);
+			void append_crc(_in crc::value crc_value);
+			void append_crc(_in crc::type crc_type);
+			//command& operator <<(_in byte_t byte);
+			//command& operator <<(_in std::initializer_list<byte_t> bytes);
+			//command& operator <<(_in crc::value crc_value);
 		public:
 			nfc::data& data() noexcept;
 			const nfc::data& data() const noexcept;
+			const byte_t& operator[](_in size index) const;
+			byte_t& operator[](_in size index);
 		public:
-			crc::value get_crc(_in crc::type crc_type) const;
-			command& operator <<(_in crc::value crc_value);
+			crc::value get_crc(_in crc::type crc_type) const;			
 		protected:
-			void _set(_in bool is__clear_first, _in std::initializer_list<byte_t> bytes);
+			
+			void set(_in bool is__clear_first, _in std::initializer_list<byte_t> bytes);
 		private:
 			nfc::data _data;
 		};
@@ -101,7 +107,7 @@ namespace nfc {
 			string::vector enum_all();
 			static bool enum_all(_out string::vector &names, _in const context &context = context(nullptr)) noexcept;
 			info connect(_in cstr_t name, _in share_mode share_mode, _in std::initializer_list<protocol> protocols = {protocol::t0, protocol::t1});
-			bool transmit(_in const scard::info &scard_info, _in const data &data_in, _out data &data_out) const;
+			bool transmit(_in const info &info, _in const data &data_in, _out data &data_out) const;
 			/*static?*/ bool disconnect(_in handle handle, _in disposition disposition = disposition::leave);
 		protected:
 			const context& get_context() const noexcept;

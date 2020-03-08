@@ -1,9 +1,8 @@
-#include "scard.h"
-
 #include <winscard.h>
 #include <map>
 #include <cassert>
 
+#include "common.h"
 #pragma comment (lib, "winscard.lib")
 
 using namespace nfc;
@@ -154,9 +153,10 @@ scard::info scard::device::connect(
 }
 
 bool scard::device::transmit(
-	_in const scard::info &scard_info, _in const data &data_in, _out data &data_out
+	_in const info &scard_info, _in const data &data_in, _out data &data_out
 ) const {
-	assert(2 <= data_out.size());
+	DWORD size_out = data_out.size();
+	assert(2 <= size_out);
 
 	const auto handle = reinterpret_cast<SCARDHANDLE>(scard_info.handle);
 	const std::map<scard::protocol, LPCSCARD_IO_REQUEST> pci {
@@ -164,7 +164,6 @@ bool scard::device::transmit(
 		{scard::protocol::t1, SCARD_PCI_T1},
 	};
 	
-	DWORD size_out = 0;
 	const auto status = Winapi::SCardTransmit(
 		handle, pci.at(scard_info.protocol), data_in.data(), static_cast<DWORD>(data_in.size()), nullptr, data_out.data(), &size_out
 	);
@@ -202,10 +201,10 @@ scard::command::command(
 scard::command::command(
 	_in std::initializer_list<byte_t> bytes
 ) {
-	_set(false, bytes);
+	set(false, bytes);
 }
 
-void scard::command::_set(
+/*protected*/ void scard::command::set(
 	_in bool is__clear_first, _in std::initializer_list<byte_t> bytes
 ) {
 	if (is__clear_first)
@@ -217,7 +216,7 @@ void scard::command::_set(
 void scard::command::set(
 	_in std::initializer_list<byte_t> bytes
 ) {
-	_set(true, bytes);
+	set(true, bytes);
 }
 
 void scard::command::clear(
@@ -225,20 +224,52 @@ void scard::command::clear(
 	_data.clear();
 }
 
-scard::command& scard::command::operator <<(
+void scard::command::append_data(
 	_in byte_t byte
 ) {
 	_data.push_back(byte);
-	return *this;
 }
-scard::command& scard::command::operator <<(
+void scard::command::append_data(
 	_in std::initializer_list<byte_t> bytes
 ) {
 	_data.reserve(_data.size() + bytes.size());
-	for (const auto byte : bytes)
+	for (const auto &byte : bytes)
 		_data.push_back(byte);
-	return *this;
 }
+
+void scard::command::append_crc(
+	_in crc::value crc_value
+) {
+	auto bytes = reinterpret_cast<const byte_t *>(&crc_value);
+	append_data(bytes[1]);
+	append_data(bytes[0]);
+}
+void scard::command::append_crc(
+	_in crc::type crc_type
+) {
+	append_crc(get_crc(crc_type));
+}
+
+//scard::command& scard::command::operator <<(
+//	_in byte_t byte
+//) {
+//	_data.push_back(byte);
+//	return *this;
+//}
+//scard::command& scard::command::operator <<(
+//	_in std::initializer_list<byte_t> bytes
+//) {
+//	_data.reserve(_data.size() + bytes.size());
+//	for (const auto byte : bytes)
+//		_data.push_back(byte);
+//	return *this;
+//}
+//scard::command& scard::command::operator <<(
+//	_in crc::value crc_value
+//	) {
+//	auto bytes = reinterpret_cast<const byte_t *>(&crc_value);
+//	return operator << ({ bytes[1], bytes[0] });
+//}
 
 const byte_t& scard::command::operator[](
 	_in size index
@@ -251,17 +282,6 @@ byte_t& scard::command::operator[](
 	return _data.at(index);
 }
 
-scard::command::crc::value scard::command::get_crc(
-	_in crc::type crc_type
-) const {
-	return crc::get(crc_type, _data);
-}
-scard::command& scard::command::operator <<(
-	_in crc::value crc_value
-) {
-	auto bytes = reinterpret_cast<const byte_t *>(&crc_value);
-	return operator << ({bytes[1], bytes[0]});
-}
 
 nfc::data& scard::command::data(
 ) noexcept {
@@ -270,6 +290,12 @@ nfc::data& scard::command::data(
 const nfc::data& scard::command::data(
 ) const noexcept {
 	return _data;
+}
+
+scard::command::crc::value scard::command::get_crc(
+	_in crc::type crc_type
+) const {
+	return crc::get(crc_type, _data);
 }
 
 //-- scard::command::crc -----------------------------------------------------------------------------------------------------------------------------------------------------

@@ -14,8 +14,8 @@ typedef __nullterminated const char_at *cstr_at;
 typedef __nullnullterminated char_at *mstr_at;
 typedef __nullnullterminated const char_at *cmstr_at;
 
-typedef unsigned argc_t;
-typedef char_t *argv_t[];
+typedef unsigned argc_t, result_t;
+typedef cstr_t argv_t;
 
 typedef void void_t;
 typedef void_t *pvoid_t, *handle_t;

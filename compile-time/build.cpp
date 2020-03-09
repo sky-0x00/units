@@ -1,7 +1,8 @@
+#include <cassert>
+
 #include "build.h"
 #include "..\macro-defs.h"
-#include "..\string.h"
-#include <cassert>
+#include "..\datetime.h"
 
 /*static*/ cstr_t build::time() {
 	static string_t value {WIDE(__TIME__)};
@@ -50,4 +51,32 @@
 	};
 	static string_t value {get_value(WIDE(__DATE__)).c_str()};
 	return value.c_str();
+}
+
+/*static*/ string_t build::to_string(
+) {
+	return date() + string_t(1, L' ') + time();
+}
+
+run::run(
+) {
+	std::tm tm;
+	const auto is_ok = datetime::to_struct(tm);
+	assert(is_ok);
+	
+	const_cast<datetime::date&>(date) = { 
+		static_cast<uint16_t>(1900 + tm.tm_year), 
+		static_cast<uint8_t>(tm.tm_mon), 
+		static_cast<uint8_t>(tm.tm_mday - 1)
+	};
+	const_cast<datetime::time&>(time) = {
+		static_cast<uint8_t>(tm.tm_hour), 
+		static_cast<uint8_t>(tm.tm_min), 
+		static_cast<uint8_t>(tm.tm_sec)
+	};
+}
+
+string_t run::to_string(
+) const {
+	return date.to_string() + L' ' + time.to_string();
 }

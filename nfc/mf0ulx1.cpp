@@ -1,4 +1,5 @@
 #include <cassert>
+#include <windows.h>
 
 #include "mf0ulx1.h"
 
@@ -51,3 +52,21 @@ bool scard_mfu::command__read(
 		return true;
 	}
 #endif	// #ifdef MFU_EV1
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------------
+///*static*/ bool scard_mfu::decode(
+//	_in const data_enc &data_enc, _out data_dec &data_dec
+//) {
+//	if (80 != data_enc.size()) {
+//		Winapi::SetLastError(SCARD_E_INVALID_PARAMETER);
+//		return false;
+//	}
+//	return false;
+//}
+
+scard_mfu::data_dec::uid_t scard_mfu::data_dec::uid(
+) const noexcept {
+	return {uid_0, uid_1, uid_2, uid_3, uid_4, uid_5, uid_6};
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------------

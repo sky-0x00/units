@@ -17,13 +17,34 @@ scard_mfu::scard_mfu(
 {}
 
 bool scard_mfu::command__read(
-	_in byte_t offset, _out data &data
+	_in byte_t offset, _out data &response
 ) const {
-	command out(16);
-	if (!transmit(command({0x30, offset}, command::crc_type::crc_a).data(), out.data()))
-		return false;
-	data = std::move(out.data());
-	return true;
+	return transmit(command({ 0x30, offset }, command::crc_type::crc_a).data(), response);
+}
+
+bool scard_mfu::command__reqa(
+	_out data &response
+) const {
+	return transmit(command({ 0x26 }).data(), response);
+}
+
+bool scard_mfu::command__firmware_version(
+	_out data &response
+) const {
+	return transmit(command({ 0xff, 0x00, 0x48, 0x00, 0x00 }).data(), response);
+}
+bool scard_mfu::command__get_status(
+	_out data &response
+) const {
+	return transmit(command({ 0xff, 0x00, 0x00, 0x00, 0x02, 0xd4, 0x04 }).data(), response);
+}
+
+bool scard_mfu::command__antenna_switch(
+	_in bool is_on
+) const {
+	const byte_t value = is_on ? 0x01 : 0x00;
+	data response;
+	return transmit(command({ 0xff, 0x00, 0x00, 0x00, 0x04, 0xd4, 0x32, 0x01, value }).data(), response);
 }
 
 #ifdef MFU_EV1

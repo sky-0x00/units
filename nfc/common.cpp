@@ -149,8 +149,8 @@ scard device::connect(
 /*static*/ bool device::transmit(
 	_in const scard &scard, _in const data &data_in, _out data &data_out
 ) {
-	DWORD size_out = data_out.size();
-	assert(2 <= size_out);
+	DWORD size_out = 64;
+	data_out.resize(size_out);
 
 	const auto handle = reinterpret_cast<SCARDHANDLE>(scard.get_handle());
 	const std::map<protocol, LPCSCARD_IO_REQUEST> pci {
@@ -195,9 +195,13 @@ command::command(
 command::command(
 	_in std::initializer_list<byte_t> bytes, _in crc_type crc_type /*= crc_type::none*/
 ) {
-	m__data.reserve(bytes.size() + sizeof(crc::value));
+	auto size = bytes.size();
+	if (crc_type::none != crc_type)
+		size += sizeof(crc::value);
+	m__data.reserve(size);
 	set_bytes(bytes);
-	set_crc(crc_type);
+	if (crc_type::none != crc_type)
+		set_crc(static_cast<crc::type>(crc_type));
 }
 
 command::size command::data_size(
@@ -227,11 +231,9 @@ command::crc::value command::get_crc(
 		m__data.push_back(byte);
 }
 void command::set_crc(
-	_in crc_type crc_type
+	_in crc::type crc_type
 ) {
-	if (crc_type::none == crc_type)
-		return;
-	const auto crc = get_crc(static_cast<crc::type>(crc_type));
+	const auto crc = get_crc(crc_type);
 	auto p_crc = reinterpret_cast<const byte_t *>(&crc);
 	m__data.push_back(p_crc[1]);
 	m__data.push_back(p_crc[0]);

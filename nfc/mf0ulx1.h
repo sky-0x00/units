@@ -51,9 +51,13 @@ namespace nfc {
 		scard_mfu(_in const scard &scard);
 		//static bool decode(_in const data_enc &data_enc, _out data_dec &data_dec);
 	public:
-		bool command__read(_in byte_t offset, _out data &data) const;				// read memory-block of 4 pages starting at offset address
+		bool command__read(_in byte_t offset, _out data &response) const;				// read memory-block of 4 pages starting at offset address
+		bool command__reqa(_out data &response) const;									// in req-a, out atq-a (not working)
+		bool command__firmware_version(_out data &response) const;						// firmware-version of the reader
+		bool command__get_status(_out data &response) const;							// get-status
+		bool command__antenna_switch(_in bool is_on) const;								// turn antenna on/off
 #ifdef MFU_EV1
-		bool command__fast_read(_in const range &range, _out data &data) const;		// fast-read memory-block of range pages [range.begin; range.end)
+		bool command__fast_read(_in const range &range, _out data &data) const;			// fast-read memory-block of range pages [range.begin; range.end)
 		bool command__get_version(_out data &data) const;
 #endif
 	private:		

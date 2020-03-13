@@ -58,7 +58,7 @@ namespace nfc {
 		byte_t& operator[](_in size index);		
 	protected:
 		void set_bytes(_in std::initializer_list<byte_t> bytes);
-		void set_crc(_in crc_type crc_type);
+		void set_crc(_in crc::type crc_type);
 		crc::value get_crc(_in crc::type crc_type) const;
 	protected:
 		size data_size() const;

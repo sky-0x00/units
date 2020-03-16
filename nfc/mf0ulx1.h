@@ -9,6 +9,10 @@ namespace nfc {
 
 	class scard_mfu: public scard {
 	public:
+		enum class version {
+			v1 = 1,		// mf0ul11
+			v2 = 2,		// mf0ul21
+		};
 		//typedef byte_t page[4];
 		//typedef page block[4];
 #ifdef MFU_EV1
